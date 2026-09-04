@@ -10,6 +10,15 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
+// 브라우저(국성국어 홈페이지)에서 직접 이 서버를 호출하므로 CORS 허용 필요
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+});
+
 const PORT = process.env.PORT || 8080;
 const RELAY_API_KEY = process.env.RELAY_API_KEY || '';
 

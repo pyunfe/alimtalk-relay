@@ -59,6 +59,17 @@ app.get('/debug-ip', async (req, res) => {
     res.json(await r.json());
 });
 
+// 알리고 서버에 등록된 템플릿 원문 조회용 (디버그. 확인 후 지워도 됨)
+app.get('/debug-template', requireApiKey, async (req, res) => {
+    const params = new URLSearchParams({
+        apikey: ALIGO_APIKEY,
+        userid: ALIGO_USERID,
+        tpl_code: req.query.tpl_code || ''
+    });
+    const r = await fetch('https://kakaoapi.aligo.in/akv10/template/list/?' + params.toString());
+    res.json(await r.json().catch(() => ({})));
+});
+
 // 특정 발송건의 실제 처리 결과 조회용 (디버그. 확인 후 지워도 됨)
 app.get('/debug-history', requireApiKey, async (req, res) => {
     const params = new URLSearchParams({

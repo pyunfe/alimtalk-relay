@@ -130,7 +130,10 @@ app.post('/notify-consult', requireApiKey, async (req, res) => {
         receiver_1: phone,
         subject_1: '상담 예약 완료 안내',
         message_1: message,
-        recvname_1: student_name || ''
+        recvname_1: student_name || '',
+        // 승인된 템플릿에 "채널 추가" 버튼(linkType: AC)이 붙어있어서, 이 버튼 정보를
+        // 그대로 안 보내면 템플릿과 불일치로 처리되어 발송이 실패함.
+        button_1: JSON.stringify({ button: [{ name: '채널 추가', linkType: 'AC' }] })
     });
 
     try {

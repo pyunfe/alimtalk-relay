@@ -48,8 +48,7 @@ function buildConsultDoneMessage({ studentName, schoolGrade, teacherName, reserv
         '',
         '※ 일정 변동 시',
         '학원((콜)032-568-9565)으로',
-        '전화 부탁드립니다. 감사합니다.',
-        '채널 추가하고 이 채널의 광고와 마케팅 메시지를 카카오톡으로 받기'
+        '전화 부탁드립니다. 감사합니다.'
     ];
     return lines.join('\r\n');
 }
@@ -134,7 +133,7 @@ app.post('/notify-consult', requireApiKey, async (req, res) => {
         recvname_1: student_name || '',
         // 승인된 템플릿에 "채널 추가" 버튼(linkType: AC)이 붙어있어서, 이 버튼 정보를
         // 그대로 안 보내면 템플릿과 불일치로 처리되어 발송이 실패함.
-        button_1: JSON.stringify({ button: [{ name: '채널 추가', linkType: 'AC' }] })
+        button_1: JSON.stringify({ button: [{ name: '채널 추가', linkType: 'AC', linkTypeName: '채널 추가' }] })
     });
 
     try {

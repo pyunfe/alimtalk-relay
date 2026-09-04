@@ -64,6 +64,7 @@ app.get('/debug-template', requireApiKey, async (req, res) => {
     const params = new URLSearchParams({
         apikey: ALIGO_APIKEY,
         userid: ALIGO_USERID,
+        senderkey: ALIGO_SENDERKEY,
         tpl_code: req.query.tpl_code || ''
     });
     const r = await fetch('https://kakaoapi.aligo.in/akv10/template/list/?' + params.toString());

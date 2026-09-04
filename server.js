@@ -59,6 +59,17 @@ app.get('/debug-ip', async (req, res) => {
     res.json(await r.json());
 });
 
+// 특정 발송건의 실제 처리 결과 조회용 (디버그. 확인 후 지워도 됨)
+app.get('/debug-history', requireApiKey, async (req, res) => {
+    const params = new URLSearchParams({
+        apikey: ALIGO_APIKEY,
+        userid: ALIGO_USERID,
+        mid: req.query.mid || ''
+    });
+    const r = await fetch('https://kakaoapi.aligo.in/akv10/history/?' + params.toString());
+    res.json(await r.json().catch(() => ({})));
+});
+
 app.post('/notify-consult', requireApiKey, async (req, res) => {
     const { student_name, phone, school, grade, teacher_name, reservation_date, reservation_time } = req.body || {};
 

@@ -27,6 +27,35 @@ const ALIGO_USERID = process.env.ALIGO_USERID || '';
 const ALIGO_SENDERKEY = process.env.ALIGO_SENDERKEY || '';
 const ALIGO_SENDER_PHONE = process.env.ALIGO_SENDER_PHONE || '';
 const ALIGO_TPL_CODE_CONSULT = process.env.ALIGO_TPL_CODE_CONSULT || '';
+const ALIGO_TPL_CODE_FIRST_ATTENDANCE = process.env.ALIGO_TPL_CODE_FIRST_ATTENDANCE || '';
+
+// 두 템플릿 모두 "채널 추가"(linkType: AC) 버튼이 붙어있어서, 이 버튼 정보를
+// 그대로 안 보내면 승인된 템플릿과 불일치로 처리되어 발송이 실패함.
+const CHANNEL_ADD_BUTTON = JSON.stringify({ button: [{ name: '채널 추가', linkType: 'AC', linkTypeName: '채널 추가' }] });
+
+// 알리고에 등록한 apikey/userid/senderkey로 알림톡 한 건을 실제 발송한다.
+async function sendAligoAlimtalk({ tplCode, phone, subject, message, recvName }) {
+    const params = new URLSearchParams({
+        apikey: ALIGO_APIKEY,
+        userid: ALIGO_USERID,
+        senderkey: ALIGO_SENDERKEY,
+        tpl_code: tplCode,
+        sender: ALIGO_SENDER_PHONE,
+        receiver_1: phone,
+        subject_1: subject,
+        message_1: message,
+        recvname_1: recvName || '',
+        button_1: CHANNEL_ADD_BUTTON
+    });
+
+    const res = await fetch('https://kakaoapi.aligo.in/akv10/alimtalk/send/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+    });
+    const json = await res.json().catch(() => ({}));
+    return { ok: res.ok, raw: json };
+}
 
 function requireApiKey(req, res, next) {
     if (!RELAY_API_KEY) return next(); // 키 미설정 시 검증 생략(테스트 편의)
@@ -62,6 +91,36 @@ function buildConsultDoneMessage({ studentName, schoolGrade, teacherName, reserv
     return lines.join('\r\n');
 }
 
+// 승인 심사에 넣은 실제 템플릿 원문 (템플릿 코드 UK_6928, "신규생 안내").
+// 변수는 학생명 / 등원일시 두 개뿐이고, 나머지는 전부 고정 문구라서
+// 여기 텍스트가 카카오에 승인된 문구와 토씨 하나도 다르면 안 됨.
+function buildFirstAttendanceMessage({ studentName, firstAttendanceText }) {
+    const lines = [
+        '[국성국어전문학원]',
+        '',
+        '안녕하세요. 국성국어 전문학원입니다.',
+        `${studentName} 학생의 입학을 환영합니다!`,
+        '',
+        '아래는 신규생 안내사항입니다.',
+        '',
+        '[첫 등원 일시]',
+        `${firstAttendanceText}`,
+        '※ 첫 등원은 본 수업 10분 전 등원 부탁드립니다.',
+        '',
+        '[클리닉]',
+        '첫 수업 다음 주차부터 클리닉을 진행합니다. 첫 수업 등원 시 담당 선생님과 꼭 클리닉 일정을 조율해주세요.',
+        '',
+        '[오시는 길]',
+        '인천 서해구 청라에메랄드102번길 8,',
+        '8층 국성국어 본관',
+        '',
+        '※ 일정 변동 시',
+        '학원((콜)032-568-9565)으로',
+        '전화 부탁드립니다. 감사합니다.'
+    ];
+    return lines.join('\r\n');
+}
+
 app.get('/', (req, res) => {
     res.json({ ok: true, service: 'alimtalk-relay' });
 });
@@ -74,7 +133,8 @@ app.get('/debug-env', requireApiKey, (req, res) => {
         ALIGO_USERID: ALIGO_USERID,
         ALIGO_SENDERKEY: mask(ALIGO_SENDERKEY),
         ALIGO_SENDER_PHONE: ALIGO_SENDER_PHONE,
-        ALIGO_TPL_CODE_CONSULT: JSON.stringify(ALIGO_TPL_CODE_CONSULT)
+        ALIGO_TPL_CODE_CONSULT: JSON.stringify(ALIGO_TPL_CODE_CONSULT),
+        ALIGO_TPL_CODE_FIRST_ATTENDANCE: JSON.stringify(ALIGO_TPL_CODE_FIRST_ATTENDANCE)
     });
 });
 
@@ -130,29 +190,42 @@ app.post('/notify-consult', requireApiKey, async (req, res) => {
         reservationTime: reservation_time || ''
     });
 
-    const params = new URLSearchParams({
-        apikey: ALIGO_APIKEY,
-        userid: ALIGO_USERID,
-        senderkey: ALIGO_SENDERKEY,
-        tpl_code: ALIGO_TPL_CODE_CONSULT,
-        sender: ALIGO_SENDER_PHONE,
-        receiver_1: phone,
-        subject_1: '상담 예약 완료 안내',
-        message_1: message,
-        recvname_1: student_name || '',
-        // 승인된 템플릿에 "채널 추가" 버튼(linkType: AC)이 붙어있어서, 이 버튼 정보를
-        // 그대로 안 보내면 템플릿과 불일치로 처리되어 발송이 실패함.
-        button_1: JSON.stringify({ button: [{ name: '채널 추가', linkType: 'AC', linkTypeName: '채널 추가' }] })
+    try {
+        const result = await sendAligoAlimtalk({
+            tplCode: ALIGO_TPL_CODE_CONSULT,
+            phone,
+            subject: '상담 예약 완료 안내',
+            message,
+            recvName: student_name
+        });
+        res.status(result.ok ? 200 : 502).json(result);
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// 미니윤철(신규 등원생 등록 자동화)에서 호출하는 "첫 등원 안내" 알림톡 발송.
+app.post('/notify-first-attendance', requireApiKey, async (req, res) => {
+    const { student_name, phone, first_attendance_text } = req.body || {};
+
+    if (!phone) {
+        return res.status(400).json({ ok: false, error: '연락처 없음' });
+    }
+
+    const message = buildFirstAttendanceMessage({
+        studentName: student_name || '',
+        firstAttendanceText: first_attendance_text || '(등원 일시 확인 필요)'
     });
 
     try {
-        const aligoRes = await fetch('https://kakaoapi.aligo.in/akv10/alimtalk/send/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
+        const result = await sendAligoAlimtalk({
+            tplCode: ALIGO_TPL_CODE_FIRST_ATTENDANCE,
+            phone,
+            subject: '첫 등원 일시 안내',
+            message,
+            recvName: student_name
         });
-        const json = await aligoRes.json().catch(() => ({}));
-        res.status(aligoRes.ok ? 200 : 502).json({ ok: aligoRes.ok, raw: json });
+        res.status(result.ok ? 200 : 502).json(result);
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
     }

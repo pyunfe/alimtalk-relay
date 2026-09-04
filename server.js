@@ -30,23 +30,27 @@ function requireApiKey(req, res, next) {
 // 승인 심사에 넣은 실제 템플릿 원문 (템플릿 코드 UK_6931, "상담 예약 완료").
 // 변수는 학생명/학교학년/담당쌤/상담일자/상담시간 다섯 개뿐이고, 나머지는 고정 문구라서
 // 여기 텍스트가 카카오에 승인된 문구와 토씨 하나도 다르면 안 됨.
+// 알리고에 등록된 원문이 CRLF(\r\n) 줄바꿈이라 여기도 반드시 \r\n으로 맞춰야 함.
 function buildConsultDoneMessage({ studentName, schoolGrade, teacherName, reservationDate, reservationTime }) {
-    return `[국성국어전문학원]
-안녕하세요. 국성국어 전문학원입니다.
-상담 예약이 확정되었습니다.
-
-▶ 학생명 : ${studentName}
-▶ 학교/학년 : ${schoolGrade}
-▶ 담당 선생님 : ${teacherName}
-▶ 상담 일시 : ${reservationDate} ${reservationTime}
-
-[오시는 길]
-인천 서해구 청라에메랄드로102번길 8,
-8층 국성국어 본관
-
-※ 일정 변동 시
-학원((콜)032-568-9565)으로
-전화 부탁드립니다. 감사합니다.`;
+    const lines = [
+        '[국성국어전문학원]',
+        '안녕하세요. 국성국어 전문학원입니다.',
+        '상담 예약이 확정되었습니다.',
+        '',
+        `▶ 학생명 : ${studentName}`,
+        `▶ 학교/학년 : ${schoolGrade}`,
+        `▶ 담당 선생님 : ${teacherName}`,
+        `▶ 상담 일시 : ${reservationDate} ${reservationTime}`,
+        '',
+        '[오시는 길]',
+        '인천 서해구 청라에메랄드로102번길 8,',
+        '8층 국성국어 본관',
+        '',
+        '※ 일정 변동 시',
+        '학원((콜)032-568-9565)으로',
+        '전화 부탁드립니다. 감사합니다.'
+    ];
+    return lines.join('\r\n');
 }
 
 app.get('/', (req, res) => {

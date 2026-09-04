@@ -79,7 +79,11 @@ app.get('/debug-template', requireApiKey, async (req, res) => {
         senderkey: ALIGO_SENDERKEY,
         tpl_code: req.query.tpl_code || ''
     });
-    const r = await fetch('https://kakaoapi.aligo.in/akv10/template/list/?' + params.toString());
+    const r = await fetch('https://kakaoapi.aligo.in/akv10/template/list/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+    });
     res.json(await r.json().catch(() => ({})));
 });
 
@@ -90,7 +94,11 @@ app.get('/debug-history', requireApiKey, async (req, res) => {
         userid: ALIGO_USERID,
         mid: req.query.mid || ''
     });
-    const r = await fetch('https://kakaoapi.aligo.in/akv10/history/?' + params.toString());
+    const r = await fetch('https://kakaoapi.aligo.in/akv10/history/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+    });
     res.json(await r.json().catch(() => ({})));
 });
 

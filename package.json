@@ -1,0 +1,13 @@
+{
+  "name": "alimtalk-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "고정 아웃바운드 IP가 필요한 알리고 알림톡 발송을 대신 처리하는 중계 서버 (Render 등 고정 IP 제공 플랫폼에 배포)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.2"
+  }
+}

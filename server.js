@@ -53,6 +53,18 @@ app.get('/', (req, res) => {
     res.json({ ok: true, service: 'alimtalk-relay' });
 });
 
+// 환경변수가 실제로 어떻게 로드됐는지 확인용 (민감정보는 일부만 마스킹해서 노출. 확인 후 지워도 됨)
+app.get('/debug-env', requireApiKey, (req, res) => {
+    const mask = (s) => s ? `${s.slice(0, 3)}...${s.slice(-3)} (len:${s.length})` : '(empty)';
+    res.json({
+        ALIGO_APIKEY: mask(ALIGO_APIKEY),
+        ALIGO_USERID: ALIGO_USERID,
+        ALIGO_SENDERKEY: mask(ALIGO_SENDERKEY),
+        ALIGO_SENDER_PHONE: ALIGO_SENDER_PHONE,
+        ALIGO_TPL_CODE_CONSULT: JSON.stringify(ALIGO_TPL_CODE_CONSULT)
+    });
+});
+
 // 이 서버가 실제로 어떤 IP로 나가는지 확인용 (알리고에 등록할 IP 확인 후 지워도 됨)
 app.get('/debug-ip', async (req, res) => {
     const r = await fetch('https://api.ipify.org?format=json');
